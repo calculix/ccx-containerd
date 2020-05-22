@@ -28,11 +28,16 @@ if [[ "$SOURCE_BRANCH" == "master" ]]; then
 elif [[ "$SOURCE_BRANCH" == "dev" ]]; then
         SOURCE_BRANCH="dev"
         VERSION="dev"
-elif [[ "${SOURCE_BRANCH/-*/}" =~ ^[0-9][0-9.]*$ ]]; then
-        VERSION=${SOURCE_BRANCH/-*/}
+elif [[ "${SOURCE_BRANCH/-v*/}" =~ ^[0-9][0-9.]*$ ]]; then
+        VERSION=${SOURCE_BRANCH/-v*/}
 else
-        echo "ERROR: Source Branch not found"
-        exit -1;
+        SOURCE_BRANCH=$(echo $SOURCE_BRANCH | sed 's/^[A-Za-z]*//g')
+        if [[ "${SOURCE_BRANCH/-*/}" =~ ^[0-9][0-9.]*$ ]]; then
+                VERSION=${SOURCE_BRANCH/-*/}
+        else
+                echo "ERROR: Source Branch not found"
+                exit -1;
+        fi
 fi
 
 [ -n "$IMAGE_PREFIX" ]       || IMAGE_PREFIX=calculix
