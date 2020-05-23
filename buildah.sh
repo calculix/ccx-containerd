@@ -64,17 +64,14 @@ buildah run $newc /bin/bash -c                                                  
 # config entry
 CC=gcc
 FC=gfortran
+CCX_INSTALL_DIR="/usr/local/CalculiX/ccx_${VERSION}"
 
 buildah config                                                                     \
   --env "VERSION=$VERSION"                                                         \
   --env "CCX_VERSION=$VERSION"                                                     \
-  --env "OMP_NUM_THREADS=\$(nproc)"                                                \
-  --env "CCX_NPROC_EQUATION_SOLVER=\$(nproc)"                                      \
-  --env "CCX_NPROC_RESULTS=\$(nproc)"                                              \
-  --env "NUMBER_OF_CPUS=\$(nproc)"                                                 \
   --env "CC=$CC"                                                                   \
   --env "FC=$FC"                                                                   \
-  --env "CCX_INSTALL_DIR=/usr/local/CalculiX/ccx_${VERSION}"                       \
+  --env "CCX_INSTALL_DIR=$CCX_INSTALL_DIR"                                         \
   --env "CCX_ARPACK_DIR=/usr/local/ARPACK"                                         \
   --env "CCX_SPOOLES_DIR=/usr/local/SPOOLES.2.2"                                   \
   --env "CCX_SRC=$CCX_INSTALL_DIR/src"                                             \
@@ -86,18 +83,16 @@ buildah config                                                                  
 # username, group, and a lot of settings
 fname=calculix
 
+buildah copy $newc script/.bashrc "/home/$fname/.bashrc"
+buildah copy $newc script/set_cpu_count "/home/$fname/set_cpu_count"
+buildah copy $newc script/ccx_env "/home/$fname/ccx_env"
+
 buildah run $newc /bin/bash -c                                                     \
   " useradd --shell /bin/zsh --create-home -U $fname                               \
   && echo '$fname ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers                          \
   && echo '127.0.1.1 $(hostname)' >> /etc/hosts                                    \
-  && echo 'include /usr/share/nano/*' >> /home/$fname/.nanorc                      \
-  && chown "$fname:$fname" /home/$fname/.nanorc                                    \
   && echo 'export VERSION=$VERSION' >> /home/$fname/.bashrc                        \
   && echo 'export CCX_VERSION=$VERSION' >> /home/$fname/.bashrc                    \
-  && echo 'export OMP_NUM_THREADS=\$(nproc)' >> /home/$fname/.bashrc               \
-  && echo 'export CCX_NPROC_EQUATION_SOLVER=\$(nproc)' >> /home/$fname/.bashrc     \
-  && echo 'export CCX_NPROC_RESULTS=\$(nproc)' >> /home/$fname/.bashrc             \
-  && echo 'export NUMBER_OF_CPUS=\$(nproc)' >> /home/$fname/.bashrc                \
   && echo 'export CC=$CC' >> /home/$fname/.bashrc                                  \
   && echo 'export FC=$FC' >> /home/$fname/.bashrc                                  \
   && echo "export CCX_INSTALL_DIR=/usr/local/CalculiX/ccx_${VERSION}" >> /home/$fname/.bashrc \
@@ -106,7 +101,10 @@ buildah run $newc /bin/bash -c                                                  
   && echo "export CCX_SRC=$CCX_INSTALL_DIR/src" >> /home/$fname/.bashrc            \
   && echo "export CCX_DOC=$CCX_INSTALL_DIR/doc" >> /home/$fname/.bashrc            \
   && echo "export CCX_TEST=$CCX_INSTALL_DIR/test" >> /home/$fname/.bashrc          \
-  && chown "$fname:$fname" /home/$fname/.bashrc"
+  && chown "$fname:$fname" /home/$fname/.bashrc                                    \
+  && chown "$fname:$fname" /home/$fname/set_cpu_count                              \
+  && chown "$fname:$fname" /home/$fname/ccx_env                                    \
+  "
 
 
 # get git repository
@@ -181,6 +179,7 @@ buildah run $newc /bin/bash -c                                                  
 # config entry
 buildah config                                                                     \
   --user "$fname:$fname"                                                           \
+  --shell "/bin/bash -c"                                                           \
   --volume '/data'                                                                 \
   --workingdir '/data'                                                             \
   --label maintainer='Thomas Enzinger <info@thomas-enzinger.de>'                   \
@@ -189,3 +188,4 @@ buildah config                                                                  
 
 # Finally saves the running container to an image
 buildah commit --rm --format docker $newc $IMAGE_NAME
+

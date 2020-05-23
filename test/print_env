@@ -1,0 +1,22 @@
+#!/bin/bash -e
+
+. ~/set_cpu_count
+
+echo "VERSION:                    $VERSION"
+echo "CCX_VERSION:                $CCX_VERSION"
+echo ""
+echo "CCX_INSTALL_DIR:            $CCX_INSTALL_DIR"
+echo "CCX_ARPACK_DIR:             $CCX_ARPACK_DIR"
+echo "CCX_SPOOLES_DIR:            $CCX_SPOOLES_DIR"
+echo "CCX_SRC:                    $CCX_SRC"
+echo "CCX_DOC:                    $CCX_DOC"
+echo "CCX_TEST:                   $CCX_TEST"
+echo ""
+echo "RK with \$(nproc):           $(nproc)"
+echo "OMP_NUM_THREADS:            $OMP_NUM_THREADS"
+echo "CCX_NPROC_EQUATION_SOLVER:  $CCX_NPROC_EQUATION_SOLVER"
+echo "CCX_NPROC_RESULTS:          $CCX_NPROC_RESULTS"
+echo "NUMBER_OF_CPUS:             $NUMBER_OF_CPUS"
+echo ""
+echo "CC:                         $CC"
+echo "FC:                         $FC"
