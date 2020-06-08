@@ -1,0 +1,29 @@
+*include, input=Mesh_1.inp
+**
+** material definitions
+*material, name=steel
+*elastic
+210000,0.3
+** material assignment to bodies
+*solid section, elset=EALL, material=steel
+**
+*BOUNDARY
+Fixed,1
+*BOUNDARY
+Fixed,2
+*BOUNDARY
+Fixed,3
+**
+*STEP
+*STATIC
+*CLOAD
+Force,2,0.5
+*NODE PRINT,NSET=NALL
+U
+*EL PRINT,ELSET=EALL
+S
+*NODE FILE
+U
+*EL FILE
+S
+*END STEP
