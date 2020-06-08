@@ -83,14 +83,15 @@ buildah config                                                                  
 # username, group, and a lot of settings
 fname=calculix
 
+buildah run $newc useradd --shell /bin/bash --create-home -U $fname
+
 buildah copy $newc script/bashrc "/home/$fname/.bashrc"
 buildah copy $newc script/set_cpu_count "/home/$fname/set_cpu_count"
 buildah copy $newc script/ccx_env "/home/$fname/ccx_env"
 buildah copy $newc script/crunchix "/usr/local/bin/crunchix"
 
 buildah run $newc /bin/bash -c "                                                   \
-     useradd --shell /bin/zsh --create-home -U $fname                              \
-  && echo '$fname ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers                          \
+     echo '$fname ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers                          \
   && echo '127.0.1.1  localhost' >> /etc/hosts                                     \
   && echo '::1        localhost' >> /etc/hosts                                     \
   && echo 'export VERSION=$VERSION' >> /home/$fname/.bashrc                        \
@@ -103,11 +104,9 @@ buildah run $newc /bin/bash -c "                                                
   && echo 'export CCX_SRC=$CCX_INSTALL_DIR/src' >> /home/$fname/.bashrc            \
   && echo 'export CCX_DOC=$CCX_INSTALL_DIR/doc' >> /home/$fname/.bashrc            \
   && echo 'export CCX_TEST=$CCX_INSTALL_DIR/test' >> /home/$fname/.bashrc          \
-  && echo '' >> /home/$fname/.bashrc                                               \
-  && echo '# If not running interactively, don\'t do anything' >> /home/$fname/.bashrc \
   && echo '[[ $- != *i* ]] && return' >> /home/$fname/.bashrc                      \
-  && echo '' >> /home/$fname/.bashrc                                               \
   && chown $fname:$fname /home/$fname/.bashrc                                      \
+  && chmod +x /home/$fname/.bashrc                                                 \
   && chown $fname:$fname /home/$fname/set_cpu_count                                \
   && chown $fname:$fname /home/$fname/ccx_env                                      \
   "
