@@ -9,7 +9,7 @@
 # Example usage:
 #
 #  - execute / run an input file from actually directory
-#    podman run --volume $PWD:/data calculix/ccx:latest ccx myInputFile.inp
+#    podman run --volume $PWD:/data calculix/ccx:latest crunchix myInputFile
 #
 #  - run bash with interative mode in container
 #    podman run --volume $PWD:/data -i -t calculix/ccx:latest /bin/bash
@@ -50,8 +50,8 @@ newc=$(buildah from --format=docker fedora:latest)
 
 
 # install basic software
-buildah run $newc /bin/bash -c                                                     \
-  "  dnf update -y                                                                 \
+buildah run $newc /bin/bash -c "                                                   \
+     dnf update -y                                                                 \
   && dnf groupinstall -y 'Development Tools'                                       \
   && dnf install -y                                                                \
        sudo bash bash-completion                                                   \
@@ -83,34 +83,42 @@ buildah config                                                                  
 # username, group, and a lot of settings
 fname=calculix
 
-buildah copy $newc script/.bashrc "/home/$fname/.bashrc"
+buildah copy $newc script/bashrc "/home/$fname/.bashrc"
 buildah copy $newc script/set_cpu_count "/home/$fname/set_cpu_count"
 buildah copy $newc script/ccx_env "/home/$fname/ccx_env"
+buildah copy $newc script/crunchix "/usr/local/bin/crunchix"
 
-buildah run $newc /bin/bash -c                                                     \
-  " useradd --shell /bin/zsh --create-home -U $fname                               \
+buildah run $newc /bin/bash -c "                                                   \
+     useradd --shell /bin/zsh --create-home -U $fname                              \
   && echo '$fname ALL=(ALL) NOPASSWD:ALL' >> /etc/sudoers                          \
-  && echo '127.0.1.1 $(hostname)' >> /etc/hosts                                    \
+  && echo '127.0.1.1  localhost' >> /etc/hosts                                     \
+  && echo '::1        localhost' >> /etc/hosts                                     \
   && echo 'export VERSION=$VERSION' >> /home/$fname/.bashrc                        \
   && echo 'export CCX_VERSION=$VERSION' >> /home/$fname/.bashrc                    \
   && echo 'export CC=$CC' >> /home/$fname/.bashrc                                  \
   && echo 'export FC=$FC' >> /home/$fname/.bashrc                                  \
-  && echo "export CCX_INSTALL_DIR=/usr/local/CalculiX/ccx_${VERSION}" >> /home/$fname/.bashrc \
-  && echo "export CCX_ARPACK_DIR=/usr/local/ARPACK" >> /home/$fname/.bashrc        \
-  && echo "export CCX_SPOOLES_DIR=/usr/local/SPOOLES.2.2" >> /home/$fname/.bashrc  \
-  && echo "export CCX_SRC=$CCX_INSTALL_DIR/src" >> /home/$fname/.bashrc            \
-  && echo "export CCX_DOC=$CCX_INSTALL_DIR/doc" >> /home/$fname/.bashrc            \
-  && echo "export CCX_TEST=$CCX_INSTALL_DIR/test" >> /home/$fname/.bashrc          \
-  && chown "$fname:$fname" /home/$fname/.bashrc                                    \
-  && chown "$fname:$fname" /home/$fname/set_cpu_count                              \
-  && chown "$fname:$fname" /home/$fname/ccx_env                                    \
+  && echo 'export CCX_INSTALL_DIR=/usr/local/CalculiX/ccx_${VERSION}' >> /home/$fname/.bashrc \
+  && echo 'export CCX_ARPACK_DIR=/usr/local/ARPACK' >> /home/$fname/.bashrc        \
+  && echo 'export CCX_SPOOLES_DIR=/usr/local/SPOOLES.2.2' >> /home/$fname/.bashrc  \
+  && echo 'export CCX_SRC=$CCX_INSTALL_DIR/src' >> /home/$fname/.bashrc            \
+  && echo 'export CCX_DOC=$CCX_INSTALL_DIR/doc' >> /home/$fname/.bashrc            \
+  && echo 'export CCX_TEST=$CCX_INSTALL_DIR/test' >> /home/$fname/.bashrc          \
+  && echo '' >> /home/$fname/.bashrc                                               \
+  && echo '# If not running interactively, don\'t do anything' >> /home/$fname/.bashrc \
+  && echo '[[ $- != *i* ]] && return' >> /home/$fname/.bashrc                      \
+  && echo '' >> /home/$fname/.bashrc                                               \
+  && chown $fname:$fname /home/$fname/.bashrc                                      \
+  && chown $fname:$fname /home/$fname/set_cpu_count                                \
+  && chown $fname:$fname /home/$fname/ccx_env                                      \
   "
 
 
 # get git repository
+[ -d repo ] && rm -rf repo
 mkdir -p repo
 git clone https://github.com/calculix/ccx.git ./repo
 git --git-dir=./repo/.git --work-tree=./repo checkout "v$VERSION"
+
 
 # copy sources
 buildah copy $newc repo/src    "/usr/local/CalculiX/ccx_${VERSION}/src/"
@@ -124,6 +132,28 @@ buildah copy $newc repo/3rdpart/SPOOLES/spooles.2.2.tgz  '/usr/local/SPOOLES.2.2
 buildah copy $newc repo/3rdpart/SPOOLES/2.2_patch        '/usr/local/SPOOLES.2.2/2.2_patch/'
 
 rm -rf repo
+
+
+# ccx2paraview
+[ -d ccx2paraview ] && rm -rf ccx2paraview
+mkdir -p ccx2paraview
+git clone https://github.com/calculix/ccx2paraview.git ./ccx2paraview
+cd ccx2paraview
+pyinstaller --onefile src/ccx2paraview.py --hidden-import 'packaging.requirements' --hidden-import 'pkg_resources.py2_warn'
+cd ..
+buildah copy $newc ccx2paraview/dist/ccx2paraview        '/usr/local/bin/ccx2paraview'
+rm -rf ccx2paraview
+
+
+# unv2ccx
+[ -d unv2ccx ] && rm -rf unv2ccx
+mkdir -p unv2ccx
+git clone https://github.com/calculix/unv2ccx.git ./unv2ccx
+cd unv2ccx
+pyinstaller --onefile unv2ccx.py
+cd ..
+buildah copy $newc unv2ccx/dist/unv2ccx                  '/usr/local/bin/unv2ccx'
+rm -rf unv2ccx
 
 
 # arpack
@@ -145,8 +175,8 @@ buildah run $newc /bin/bash -c                                                  
 
 
 # SPOOLES
-buildah run $newc /bin/bash -c                                                     \
-  "  . /home/$fname/.bashrc                                                        \
+buildah run $newc /bin/bash -c "                                                   \
+     . /home/$fname/.bashrc                                                        \
   && cd /usr/local/SPOOLES.2.2/                                                    \
   && tar -xvzf spooles.2.2.tgz                                                     \
   && /bin/cp -rf 2.2_patch/* . && rm -Rf 2.2_patch                                 \
@@ -163,8 +193,8 @@ buildah run $newc /bin/bash -c                                                  
 
 
 # Calculix
-buildah run $newc /bin/bash -c                                                     \
-  "  . /home/$fname/.bashrc                                                        \
+buildah run $newc /bin/bash -c "                                                   \
+     . /home/$fname/.bashrc                                                        \
   && cd /usr/local/CalculiX/ccx_${VERSION}/src                                     \
   && sed -i 's/^CC=.*/CC=$CC/'                        Makefile_MT                  \
   && sed -i 's/^FC=.*/FC=$FC/'                        Makefile_MT                  \
@@ -187,5 +217,6 @@ buildah config                                                                  
   $newc
 
 # Finally saves the running container to an image
-buildah commit --rm --format docker $newc $IMAGE_NAME
+newi=$(buildah commit --rm --format docker $newc $IMAGE_NAME)
+podman push $newi docker-daemon:$IMAGE_NAME
 

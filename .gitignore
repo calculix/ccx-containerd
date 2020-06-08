@@ -1,3 +1,17 @@
 
-# build locations
-/repo
+#
+**/.svn
+**/.git
+
+# ccx files
+*.12d
+*.cvg
+*.dat
+*.frd
+*.sta
+**/spooles.out
+
+# paraview formats
+*.vtu
+*.vtk
+

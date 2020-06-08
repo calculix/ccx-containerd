@@ -20,9 +20,9 @@ to set all the envoriment variables for the Calculix ChruniX to the default valu
 podman run --rm --volume $PWD:/data calculix/ccx:latest test/print_env
 ```
 
- - Execute / run an input file from actually directory and remove the container afterwards.
+ - Execute / run an input file *MyCaseFile.inp* from the actually directory and remove the container afterwards.
 ```console
-podman run --rm --volume $PWD:/data calculix/ccx:latest ccx myInputFile.inp
+podman run --rm --volume $PWD:/data calculix/ccx:latest crunchix MyCaseFile
 ```
 
  - Run bash (interactive mode + allocate tty) inside the container.

@@ -1,0 +1,65 @@
+#!/bin/bash -xe
+
+CASE_FILE=${1:-'study'}
+DIR=$(realpath -L .)
+CASEDIR=$DIR
+WORKDIR=$(realpath -L .)
+
+OPT_TO_PARAVIEW=0
+OPT_CLEAN=0
+
+
+# idiomatic parameter and option handling in sh
+while test $# -gt 0
+do
+    case "$1" in
+        --clean) OPT_CLEAN=1
+            ;;
+        --toParaview) OPT_TO_PARAVIEW=1
+            ;;
+        --workdir) WORKDIR=$(realpath -L $1)
+            ;;
+        --casedir) CASEDIR=$(realpath -L $1)
+            ;;
+        --*) echo "option $1 actually not supported"
+            ;;
+        *) echo "argument $1"
+            ;;
+    esac
+    shift
+done
+
+
+# check arguments contains an thruth case name
+[[ ! -f "$CASEDIR/${CASE_FILE}.inp" ]] && echo "Case File ${CASEDIR}/${CASE_FILE}.inp do not exists." && exit -1
+
+
+# setup env
+[[ -f "~/ccx_env" ]] && . ~/ccx_env
+
+
+# run case
+cd $WORKDIR
+ccx ${CASEDIR}/${CASE_FILE}
+
+
+# convert to paraview
+if [[ $OPT_TO_PARAVIEW -eq 1]]
+then
+    ccx2paraview "${CASE_FILE}.frd" vtu
+    #
+    [[ $OPT_CLEAN -eq 1]] && rm -f "${CASE_FILE}.frd" "${CASE_FILE}.dat"
+fi
+
+
+# clean up
+[[ $OPT_CLEAN -eq 1]] && rm -f     \
+    "${CASE_FILE}.12d"             \
+    "${CASE_FILE}.cvg"             \
+    "${CASE_FILE}.sta"             \
+    "spooles.out"
+
+
+# back to the roots
+cd $DIR
+
