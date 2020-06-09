@@ -20,6 +20,18 @@
 #
 
 
+# parse command line
+TAUCS_ENABLED=0
+
+while [[ "$#" -gt 0 ]]; do
+    case $1 in
+        --TAUCS) TAUCS_ENABLED=1 ;;
+        *) echo "Unknown parameter passed: $1"; exit 1 ;;
+    esac
+    shift
+done
+
+
 # parse git branch to dected the compiling version
 [ -n "$SOURCE_BRANCH" ]  || SOURCE_BRANCH=$(git symbolic-ref -q --short HEAD)
 if [[ "$SOURCE_BRANCH" == "master" ]]; then
@@ -191,6 +203,45 @@ buildah run $newc /bin/bash -c "                                                
   "
 
 
+# taucs
+if [ "$TAUCS_ENABLED" -eq 1 ] ; then
+  #
+  buildah run $newc /bin/bash -c "                                                 \
+       dnf install -y                                                              \
+         lapack-static atlas-static metis metis-devel                              \
+    && dnf clean all && rm -rf /var/cache/dnf                                      \
+    "
+  #
+  [ -d "taucs" ] && rm -rf taucs
+  mkdir taucs
+  tar -xzvf 3rdpart/taucs/taucs_2.2.tgz -C taucs
+  buildah copy $newc taucs "/usr/local/taucs/"
+  rm -rf taucs
+  #
+  buildah run $newc /bin/bash -c "                                                 \
+       cd /usr/local/taucs                                                         \
+    && ./configure                                                                 \
+    && touch build/linux/taucs_config_tests.h                                      \
+    && echo '#define TAUCS_BLAS_UNDERSCORE' >> build/linux/taucs_config_tests.h    \
+    && echo '#define TAUCS_C99_COMPLEX' >> build/linux/taucs_config_tests.h        \
+    && sed -i 's|^FC        = g77|FC        = gfortran|' config/linux.mk           \
+    && sed -i 's| -Wall||' config/linux.mk                                         \
+    && sed -i 's| -Werror||' config/linux.mk                                       \
+    && sed -i 's| -pedantic||' config/linux.mk                                     \
+    && sed -i 's|LIBBLAS   = -L external/lib/linux|LIBBLAS   = -L /usr/lib64/atlas|' config/linux.mk \
+    && sed -i 's|LIBLAPACK = -L external/lib/linux|LIBLAPACK = -L /usr/lib|' config/linux.mk \
+    && sed -i 's|LIBF77 = -lg2c|LIBF77 = -lgfortran|' config/linux.mk              \
+    && make -j$(nproc)                                                             \
+    && cd /usr/local/CalculiX/ccx_${VERSION}/src                                   \
+    && sed -i 's|^CFLAGS = .*|& -I ../../../taucs/src -I ../../../taucs/build/linux -DTAUCS |'  Makefile_MT \
+    && sed -i 's|^LIBS = \.*|& ../../../taucs/lib/linux/libtaucs.a /usr/lib64/atlas/liblapack.a /usr/lib64/atlas/libf77blas.a /usr/lib64/atlas/libcblas.a /usr/lib64/atlas/libatlas.a|'  Makefile_MT \
+    && sed -i 's|$(FC) -fopenmp|& -lgfortran -lmetis|' Makefile_MT                 \
+    "
+  #-lf77blas -lcblas -latlas -llapack -lmetis
+#    && echo '#define TAUCS_BLAS_F2C' >> build/linux/taucs_config_tests.h           \
+fi
+
+
 # Calculix
 buildah run $newc /bin/bash -c "                                                   \
      . /home/$fname/.bashrc                                                        \
@@ -204,6 +255,14 @@ buildah run $newc /bin/bash -c "                                                
   && find . -name '*.a' -delete                                                    \
   "
 
+# clean taucs .o files
+if [ "$TAUCS_ENABLED" -eq 1 ] ; then
+
+buildah run $newc /bin/bash -c "                                                   \
+     cd /usr/local/taucs                                                           \
+  && find . -name '*.o' -delete                                                    \
+  "
+fi
 
 # config entry
 buildah config                                                                     \
@@ -217,5 +276,4 @@ buildah config                                                                  
 
 # Finally saves the running container to an image
 newi=$(buildah commit --rm --format docker $newc $IMAGE_NAME)
-podman push $newi docker-daemon:$IMAGE_NAME
 
