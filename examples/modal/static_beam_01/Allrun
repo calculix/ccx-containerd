@@ -1,0 +1,16 @@
+#!/bin/bash -xe
+
+# setup env
+.  ~/ccx_env
+./Allclean
+
+#
+[ -f "Mesh_1.inp" ] && rm -f Mesh_1.inp
+unv2ccx Mesh_1.unv
+
+#
+JobName=case
+
+ccx ${JobName}
+ccx2paraview ${JobName}.frd vtu
+

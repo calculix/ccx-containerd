@@ -1,0 +1,26 @@
+*include, input=Mesh_1.inp
+**
+** material definitions
+*material, name=steel
+*elastic
+210000,0.3
+*density
+7.85e-9
+** material assignment to bodies
+*solid section, elset=EALL, material=steel
+**
+*BOUNDARY
+Fixed,1
+*BOUNDARY
+Fixed,2
+*BOUNDARY
+Fixed,3
+**
+*STEP
+*FREQUENCY
+200
+*CLOAD
+Force,2,0.5
+*NODE FILE
+U
+*END STEP
