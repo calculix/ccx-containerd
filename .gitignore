@@ -9,6 +9,7 @@
 *.dat
 *.frd
 *.sta
+*.pvd
 **/spooles.out
 
 # paraview formats
