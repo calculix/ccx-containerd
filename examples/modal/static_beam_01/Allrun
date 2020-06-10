@@ -6,6 +6,8 @@
 
 #
 [ -f "Mesh_1.inp" ] && rm -f Mesh_1.inp
+[ -f "Mesh_1.unv" ] || xz -d Mesh_1.unv.xz
+
 unv2ccx Mesh_1.unv
 
 #
