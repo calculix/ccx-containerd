@@ -1,0 +1,42 @@
+*include, input=Mesh_1.inp
+
+*boundary
+Fixed,3
+SYM_YZ,1
+SYM_XZ,2
+
+** material definition
+
+*material, name=steel
+*elastic
+210000,0.3,0
+*DENSITY
+7.85e-9
+*EXPANSION,ZERO=273.
+12.E-6,373.
+20.E-6,573.
+*CONDUCTIVITY
+50.,373.
+100.,573.
+*SPECIFIC HEAT
+446.E6
+
+*solid section, elset=EALL, material=steel
+
+** initial temperature
+*initial conditions, type=temperature
+NALL,293.
+
+*STEP
+*COUPLED TEMPERATURE-DISPLACEMENT,DIRECT
+0.01,0.5
+*amplitude, name=excite
+0,0, 0.02,0, 0.04,1, 0.24,1
+0.26,0
+*dflux,amplitude=excite
+Heat_Face, S6, 5.000000e+01
+*node file
+NT,U
+*el file
+S
+*end step

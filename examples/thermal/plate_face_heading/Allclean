@@ -1,0 +1,6 @@
+#!/bin/bash -xe
+
+JobName=case
+
+#
+rm -f spooles.out ${JobName}.12d ${JobName}.cvg ${JobName}.dat ${JobName}.frd ${JobName}.sta ${JobName}.*.vtu Mesh_1.inp ${JobName}.pvd  dummy
