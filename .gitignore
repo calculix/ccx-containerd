@@ -12,6 +12,14 @@
 *.pvd
 **/spooles.out
 
+# mesh
+#   - excluded non packing meshes
+#   - if possible add scripts to generate meshes
+*.unv
+
+# salome platform files
+*.hdf
+
 # paraview formats
 *.vtu
 *.vtk
